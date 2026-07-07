@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>El costo de la distancia — flete a puerto por departamento (2024/25)</title>
+<meta name="description" content="Cuánto del valor de la cosecha de maíz y soja se pierde en flete a puerto, por departamento. Análisis geoespacial, campaña 2024/25.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,500;0,600;0,700;1,500&family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#f6f2ea;
+    --paper-2:#efe9dc;
+    --ink:#12305e;
+    --ink-soft:#33415c;
+    --body:#3d4550;
+    --accent:#c1541c;
+    --line:#d9d0bd;
+    --green:#1a9850;
+    --yellow:#fee08b;
+    --red:#d73027;
+    --card:#ffffff;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  html{scroll-behavior:smooth;}
+  body{
+    background:var(--paper);
+    color:var(--body);
+    font-family:'Poppins',sans-serif;
+    font-weight:400;
+    line-height:1.6;
+    -webkit-font-smoothing:antialiased;
+  }
+  h1,h2,h3{font-family:'Lora',serif; color:var(--ink); font-weight:600;}
+  a{color:var(--accent);}
+  .wrap{max-width:1040px; margin:0 auto; padding:0 28px;}
+
+  /* semáforo bar — el elemento de firma, tomado directamente del propio mapa */
+  .semaforo-bar{
+    height:6px;
+    width:100%;
+    background:linear-gradient(90deg, var(--green) 0%, var(--yellow) 50%, var(--red) 100%);
+  }
+
+  header.hero{padding:76px 0 64px; position:relative;}
+  .eyebrow{
+    font-family:'Poppins',sans-serif; font-size:12.5px; font-weight:600;
+    letter-spacing:0.14em; text-transform:uppercase; color:var(--accent);
+    margin-bottom:18px; display:flex; align-items:center; gap:10px;
+  }
+  .eyebrow::before{content:''; width:22px; height:2px; background:var(--accent); display:inline-block;}
+  h1.title{font-size:clamp(2.4rem, 5.4vw, 3.6rem); line-height:1.08; letter-spacing:-0.01em; max-width:800px;}
+  p.subtitle{
+    font-family:'Lora',serif; font-style:italic; color:var(--ink-soft);
+    font-size:1.2rem; margin:20px 0 6px; max-width:620px;
+  }
+  p.meta{font-size:14px; color:var(--body); opacity:0.75; margin-bottom:44px;}
+
+  .kpis{display:grid; grid-template-columns:repeat(3,1fr); gap:1px; background:var(--line); border:1px solid var(--line);}
+  .kpi{background:var(--card); padding:26px 22px; text-align:center;}
+  .kpi .num{font-family:'Lora',serif; font-weight:700; font-size:1.9rem; color:var(--ink);}
+  .kpi .lab{font-size:12.5px; color:var(--body); opacity:0.8; margin-top:6px;}
+
+  section{padding:56px 0;}
+  section.divider-top{border-top:1px solid var(--line);}
+  h2.section-title{font-size:1.7rem; margin-bottom:10px;}
+  p.section-lede{color:var(--ink-soft); max-width:680px; margin-bottom:30px; font-size:15.5px;}
+
+  .figure{margin:0 0 12px;}
+  .figure img{width:100%; display:block; border:1px solid var(--line); background:#fff;}
+  .figure figcaption{font-size:13px; color:var(--body); opacity:0.75; padding-top:10px; max-width:680px;}
+
+  .map-frame-wrap{
+    border:1px solid var(--line); background:#fff; overflow:hidden;
+  }
+  iframe.map-frame{width:100%; height:560px; border:0; display:block;}
+  .map-cta{
+    display:flex; justify-content:space-between; align-items:center;
+    padding:14px 18px; background:var(--paper-2); border-top:1px solid var(--line);
+    font-size:13.5px; flex-wrap:wrap; gap:10px;
+  }
+  .map-cta a{font-weight:600; text-decoration:none;}
+  .map-cta a:hover{text-decoration:underline;}
+
+  .table-scroll{overflow-x:auto; -webkit-overflow-scrolling:touch;}
+  table{width:100%; min-width:420px; border-collapse:collapse; font-size:14px; background:#fff;}
+  caption{text-align:left; font-family:'Lora',serif; font-weight:600; color:var(--ink); font-size:15px; padding-bottom:10px;}
+  th{
+    text-align:left; font-weight:600; font-size:11.5px; letter-spacing:0.04em;
+    text-transform:uppercase; color:var(--ink); background:var(--paper-2);
+    padding:10px 12px; border-bottom:1px solid var(--line);
+  }
+  td{padding:9px 12px; border-bottom:1px solid var(--line);}
+  td.num{text-align:right; font-variant-numeric:tabular-nums;}
+  td.num.hot{color:var(--red); font-weight:600;}
+  td.num.cold{color:var(--green); font-weight:600;}
+  .tables-grid{display:grid; grid-template-columns:1fr 1fr; gap:28px;}
+
+  .downloads{display:grid; grid-template-columns:repeat(3,1fr); gap:16px;}
+  .dl-card{
+    background:var(--card); border:1px solid var(--line); padding:22px 20px;
+    text-decoration:none; display:block; transition:border-color .15s ease, transform .15s ease;
+  }
+  .dl-card:hover{border-color:var(--accent); transform:translateY(-2px);}
+  .dl-card .dl-label{font-size:11.5px; letter-spacing:0.06em; text-transform:uppercase; color:var(--accent); font-weight:600;}
+  .dl-card .dl-title{font-family:'Lora',serif; font-weight:600; color:var(--ink); font-size:1.05rem; margin:8px 0 6px;}
+  .dl-card .dl-desc{font-size:13px; color:var(--body); opacity:0.8;}
+
+  .method-list{max-width:760px;}
+  .method-list dt{font-weight:600; color:var(--ink); margin-top:16px; font-size:14.5px;}
+  .method-list dd{margin-left:0; font-size:14.5px; color:var(--ink-soft); margin-top:3px;}
+
+  footer{padding:40px 0 60px; border-top:1px solid var(--line); font-size:13px; color:var(--body); opacity:0.75;}
+  footer a{color:var(--ink-soft);}
+
+  @media (max-width:720px){
+    .kpis{grid-template-columns:1fr;}
+    .tables-grid{grid-template-columns:1fr; gap:8px;}
+    .downloads{grid-template-columns:1fr;}
+    iframe.map-frame{height:420px;}
+    .wrap{padding:0 18px;}
+  }
+</style>
+</head>
+<body>
+
+<div class="semaforo-bar"></div>
+
+<div class="wrap">
+  <header class="hero">
+    <p class="eyebrow">Análisis geoespacial · campaña 2024/25</p>
+    <h1 class="title">El costo de la distancia</h1>
+    <p class="subtitle">Cuánto del valor de la cosecha se lo lleva el flete a puerto</p>
+    <p class="meta">Maíz y soja, por departamento · 311 departamentos · tarifa FeTrA Nacional marzo 2026</p>
+
+    <div class="kpis">
+      <div class="kpi"><div class="num">3,7&nbsp;–&nbsp;54,3%</div><div class="lab">rango del flete sobre el valor bruto</div></div>
+      <div class="kpi"><div class="num">≈US$ 4.500&nbsp;M</div><div class="lab">flete a puerto · orden de magnitud</div></div>
+      <div class="kpi"><div class="num">31,5%&nbsp;vs&nbsp;16,6%</div><div class="lab">maíz vs. soja · promedio simple</div></div>
+    </div>
+  </header>
+
+  <section class="divider-top">
+    <h2 class="section-title">El mapa del flete</h2>
+    <p class="section-lede">Verde: el flete pesa poco sobre el valor. Rojo: se lo come. Escala común 0–55&nbsp;% para comparar ambos cultivos. El maíz escala hacia el rojo mucho antes que la soja: no porque viaje más lejos, sino porque su menor precio por tonelada amplifica el peso relativo del mismo flete.</p>
+    <figure class="figure">
+      <img src="mapa_flete.png" alt="Mapa de Argentina con el porcentaje del valor bruto perdido en flete a puerto, para maíz y soja, por departamento">
+      <figcaption>★ puertos de embarque (Gran Rosario, Bahía Blanca, Quequén). Gris = departamento sin producción registrada del cultivo.</figcaption>
+    </figure>
+  </section>
+
+  <section class="divider-top">
+    <h2 class="section-title">Explorá el mapa interactivo</h2>
+    <p class="section-lede">Pasá el cursor sobre cualquier departamento para ver su distancia a puerto, el puerto asignado y el valor neto por tonelada. El control de capas alterna entre maíz y soja.</p>
+    <div class="map-frame-wrap">
+      <iframe class="map-frame" src="mapa_interactivo.html" loading="lazy" title="Mapa interactivo del costo de flete a puerto"></iframe>
+      <div class="map-cta">
+        <span>Construido con Folium sobre geometrías del IGN.</span>
+        <a href="mapa_interactivo.html" target="_blank" rel="noopener">Abrir a pantalla completa ↗</a>
+      </div>
+    </div>
+  </section>
+
+  <section class="divider-top">
+    <h2 class="section-title">Costo logístico por provincia</h2>
+    <p class="section-lede">Traducido a dinero, el ranking se ordena por volumen: Córdoba y Buenos Aires concentran el mayor costo logístico absoluto pese a tener porcentajes moderados. Salta y Misiones muestran las intensidades más altas, aunque su bajo volumen limita el monto total. Los montos son órdenes de magnitud a tarifa de referencia y tipo de cambio de fin de marzo.</p>
+    <figure class="figure">
+      <img src="ranking_provincias.png" alt="Ranking de provincias por valor perdido en flete a puerto, maíz más soja, campaña 2024/25">
+    </figure>
+  </section>
+
+  <section class="divider-top">
+    <h2 class="section-title">Casos extremos</h2>
+    <p class="section-lede">Los seis departamentos más golpeados por el flete y los seis más protegidos por su cercanía al puerto.</p>
+    <div class="tables-grid">
+      <div class="table-scroll">
+      <table>
+        <caption>Más golpeados (todos maíz del norte)</caption>
+        <thead><tr><th>Departamento</th><th>Provincia</th><th>Cultivo</th><th>Distancia</th><th>% flete</th></tr></thead>
+        <tbody>
+<tr><td>General Jose De San Martin</td><td>Salta</td><td>Maíz</td><td class="num">1397 km</td><td class="num hot">54.3%</td></tr>
+<tr><td>Rivadavia</td><td>Salta</td><td>Maíz</td><td class="num">1360 km</td><td class="num hot">53.7%</td></tr>
+<tr><td>General Manuel Belgrano</td><td>Misiones</td><td>Maíz</td><td class="num">1322 km</td><td class="num hot">53.0%</td></tr>
+<tr><td>Oran</td><td>Salta</td><td>Maíz</td><td class="num">1321 km</td><td class="num hot">53.0%</td></tr>
+<tr><td>Cachi</td><td>Salta</td><td>Maíz</td><td class="num">1304 km</td><td class="num hot">52.6%</td></tr>
+<tr><td>Valle Grande</td><td>Jujuy</td><td>Maíz</td><td class="num">1293 km</td><td class="num hot">52.4%</td></tr>
+
+        </tbody>
+      </table>
+      </div>
+      <div class="table-scroll">
+      <table>
+        <caption>Más protegidos (todos soja del núcleo)</caption>
+        <thead><tr><th>Departamento</th><th>Provincia</th><th>Cultivo</th><th>Distancia</th><th>% flete</th></tr></thead>
+        <tbody>
+<tr><td>San Lorenzo</td><td>Santa Fe</td><td>Soja</td><td class="num">42 km</td><td class="num cold">3.7%</td></tr>
+<tr><td>Rosario</td><td>Santa Fe</td><td>Soja</td><td class="num">53 km</td><td class="num cold">4.2%</td></tr>
+<tr><td>Necochea</td><td>Buenos Aires</td><td>Soja</td><td class="num">57 km</td><td class="num cold">4.3%</td></tr>
+<tr><td>Loberia</td><td>Buenos Aires</td><td>Soja</td><td class="num">61 km</td><td class="num cold">4.4%</td></tr>
+<tr><td>Victoria</td><td>Entre Rios</td><td>Soja</td><td class="num">68 km</td><td class="num cold">4.7%</td></tr>
+<tr><td>Tornquist</td><td>Buenos Aires</td><td>Soja</td><td class="num">70 km</td><td class="num cold">4.8%</td></tr>
+
+        </tbody>
+      </table>
+      </div>
+    </div>
+  </section>
+
+  <section class="divider-top">
+    <h2 class="section-title">Metodología, en breve</h2>
+    <dl class="method-list">
+      <dt>Universo</dt>
+      <dd>311 departamentos con producción de maíz y/o soja, campaña 2024/25 (estimaciones agrícolas oficiales).</dd>
+      <dt>Distancia</dt>
+      <dd>Ruteo carretero real (OSRM) desde el centroide de cada departamento hasta el puerto de embarque más cercano —Gran Rosario, Bahía Blanca o Quequén—, geolocalizados sobre su terminal real.</dd>
+      <dt>Costo del flete</dt>
+      <dd>Tarifa FeTrA Nacional de marzo 2026, interpolada por kilómetro. Es una tarifa de referencia sectorial, no un precio de mercado observado: tiende a ubicarse por encima del flete que efectivamente se negocia.</dd>
+      <dt>Robustez</dt>
+      <dd>El % del flete sobre el valor bruto no depende del tipo de cambio en la gran mayoría de los casos (el factor se cancela en el cociente). Los montos totales en dólares sí son sensibles al tipo de cambio y deben leerse como orden de magnitud.</dd>
+    </dl>
+    <p style="margin-top:22px; font-size:14.5px;">Metodología completa, caveats y tablas detalladas en el <a href="downloads/informe_costo_distancia.docx">informe ejecutivo</a>.</p>
+  </section>
+
+  <section class="divider-top">
+    <h2 class="section-title">Descargas</h2>
+    <div class="downloads">
+      <a class="dl-card" href="downloads/03_motor_costos.ipynb" download>
+        <div class="dl-label">Notebook</div>
+        <div class="dl-title">Pipeline reproducible</div>
+        <div class="dl-desc">Jupyter / Google Colab, corre de punta a punta con assert de consistencia.</div>
+      </a>
+      <a class="dl-card" href="downloads/resultados.csv" download>
+        <div class="dl-label">Datos</div>
+        <div class="dl-title">resultados.csv</div>
+        <div class="dl-desc">583 filas · 311 departamentos × 2 cultivos, con distancia, puerto y % flete.</div>
+      </a>
+      <a class="dl-card" href="downloads/informe_costo_distancia.docx" download>
+        <div class="dl-label">Informe</div>
+        <div class="dl-title">Informe ejecutivo</div>
+        <div class="dl-desc">Word · mapa, lectura de resultados, metodología y advertencias completas.</div>
+      </a>
+    </div>
+  </section>
+
+  <footer>
+    Elaboración propia · Mariano Romero · Fuentes: estimaciones agrícolas oficiales, FeTrA Nacional, BCRA, IGN, OSRM.
+    &nbsp;·&nbsp; <a href="https://github.com/romeromariano03" target="_blank" rel="noopener">github.com/romeromariano03</a>
+  </footer>
+</div>
+
+</body>
+</html>
