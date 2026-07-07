@@ -1,0 +1,12 @@
+# Datos pesados de terceros (bajar aparte, ver README)
+departamentos_ign.zip
+distancias.csv
+
+# Python / Jupyter
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+
+# Sistema
+.DS_Store
+Thumbs.db
